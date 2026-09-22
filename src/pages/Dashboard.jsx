@@ -1,5 +1,7 @@
+// src/pages/Dashboard.jsx
+
 import { useState, useEffect } from 'react';
-import API from '../api/axios';
+import { Link } from 'react-router-dom';
 import {
   BarChart3,
   CheckCircle2,
@@ -7,16 +9,59 @@ import {
   Users,
   ArrowUpRight,
   Plus,
-  LayoutDashboard
+  LayoutDashboard,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+
+import API from '../api/axios';
+import './styles/Dashboard.css';
+
+/* ─── Tone palette ─── */
+const TONES = {
+  gold:    { bg: '#F5EEDD', fg: '#9C7F41' },
+  success: { bg: '#d1fae5', fg: '#047857' },
+  warning: { bg: '#fef3c7', fg: '#b45309' },
+  navy:    { bg: '#E0E7FF', fg: '#1e3a8a' },
+};
+
+/* ─── Stat Card ─── */
+const StatCard = ({ title, value, icon: Icon, tone = 'gold' }) => {
+  const colors = TONES[tone] || TONES.gold;
+  return (
+    <div className="equip_Dashboard__statCard" tabIndex={0}>
+      <div className="equip_Dashboard__statTop">
+        <div
+          className="equip_Dashboard__statIcon"
+          style={{ background: colors.bg, color: colors.fg }}
+        >
+          <Icon size={22} strokeWidth={2.2} />
+        </div>
+        <span className="equip_Dashboard__statTag">Per Month</span>
+      </div>
+      <div className="equip_Dashboard__statBottom">
+        <p className="equip_Dashboard__statValue">{value}</p>
+        <p className="equip_Dashboard__statLabel">{title}</p>
+      </div>
+    </div>
+  );
+};
+
+/* ─── Status Badge ─── */
+const StatusBadge = ({ status }) => {
+  const slug = status.toLowerCase().replace(' ', '-');
+  return (
+    <span className={`equip_Dashboard__status equip_Dashboard__status--${slug}`}>
+      <span className="equip_Dashboard__statusDot" />
+      {status}
+    </span>
+  );
+};
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
     total: 0,
     completed: 0,
     pending: 0,
-    clients: 0
+    clients: 0,
   });
   const [recentInspections, setRecentInspections] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,7 +71,7 @@ const Dashboard = () => {
       try {
         const [insRes, cliRes] = await Promise.all([
           API.get('/inspections'),
-          API.get('/clients')
+          API.get('/clients'),
         ]);
 
         const inspections = insRes.data;
@@ -36,7 +81,7 @@ const Dashboard = () => {
           total: inspections.length,
           completed: inspections.filter(i => i.status === 'Completed').length,
           pending: inspections.filter(i => i.status !== 'Completed').length,
-          clients: clients.length
+          clients: clients.length,
         });
 
         setRecentInspections(inspections.slice(0, 5));
@@ -49,125 +94,132 @@ const Dashboard = () => {
     fetchData();
   }, []);
 
-  const StatCard = ({ title, value, icon: Icon, color, trend }) => (
-    <div className="glass-card flex flex-col gap-4">
-      <div className="flex justify-between items-start">
-        <div style={{
-          width: 48, height: 48, borderRadius: 14, background: `${color}10`, color: color,
-          display: 'grid', placeItems: 'center'
-        }}>
-          <Icon size={24} />
-        </div>
-        <div style={{ padding: '20px', borderRadius: 8, background: '#f1f5f9', fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)' }}>
-          PER MONTH
-        </div>
+  if (loading) {
+    return (
+      <div className="equip_Dashboard__loading">
+        <div className="equip_Dashboard__spinner" />
+        <span>Loading dashboard…</span>
       </div>
-      <div>
-        <p style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600, letterSpacing: '0.02em' }}>{title}</p>
-        <p style={{ fontSize: 32, fontWeight: 800, marginTop: 4 }}>{value}</p>
-      </div>
-    </div>
-  );
+    );
+  }
 
   return (
-    <div className="flex flex-col gap-10">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+    <div className="equip_Dashboard">
+      {/* ─── HEADER ─── */}
+      <header className="equip_Dashboard__header">
         <div>
-          <div className="flex items-center gap-2 mb-2" style={{ color: 'var(--accent-color)' }}>
-            <LayoutDashboard size={18} />
-            <span style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Overview</span>
+          <div className="equip_Dashboard__eyebrow">
+            <LayoutDashboard />
+            <span>Overview</span>
           </div>
-          <h1 style={{ fontSize: 'clamp(24px, 5vw, 36px)', fontWeight: 800 }}>Control Panel</h1>
-          <p style={{ color: 'var(--text-secondary)', fontWeight: 500, marginTop: 4 }}>Track your equipment inspection metrics in real-time.</p>
+          <h1 className="equip_Dashboard__title">Control Panel</h1>
+          <p className="equip_Dashboard__subtitle">
+            Track your equipment inspection metrics in real-time.
+          </p>
         </div>
-        <Link to="/inspections" className="btn-primary" style={{ height: `100%`, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', sm: 'auto', borderRadius: 10, marginTop: 20, marginBottom: 20, textDecoration: 'none' }}>
-          <Plus size={20} /> New Inspection
+        <Link to="/inspections" className="equip_Dashboard__newBtn">
+          <Plus size={18} /> New Inspection
         </Link>
-      </div>
+      </header>
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(100%, 280px, 100%), 1fr))',
-        gap: '24px'
-      }}>
-        <style>{`
-          @media (min-width: 640px) {
-            .stats-grid { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) !important; }
-          }
-        `}</style>
-        <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px', width: '100% border-box' }}>
-          <StatCard title="Total Inspections" value={stats.total} icon={BarChart3} color="var(--accent-color)" />
-          <StatCard title="Completed" value={stats.completed} icon={CheckCircle2} color="var(--success)" />
-          <StatCard title="In Progress" value={stats.pending} icon={Clock} color="var(--warning)" />
-          <StatCard title="Active Clients" value={stats.clients} icon={Users} color="#9333ea" />
-        </div>
-      </div>
+      {/* ─── STATS ─── */}
+      <section className="equip_Dashboard__statsGrid">
+        <StatCard
+          title="Total Inspections"
+          value={stats.total}
+          icon={BarChart3}
+          tone="gold"
+        />
+        <StatCard
+          title="Completed"
+          value={stats.completed}
+          icon={CheckCircle2}
+          tone="success"
+        />
+        <StatCard
+          title="In Progress"
+          value={stats.pending}
+          icon={Clock}
+          tone="warning"
+        />
+        <StatCard
+          title="Active Clients"
+          value={stats.clients}
+          icon={Users}
+          tone="navy"
+        />
+      </section>
 
-      <div className="flex flex-col gap-6">
-        <div className="flex justify-between items-center">
-          <h2 style={{ fontSize: 22, fontWeight: 800 }}>Recent Inspections</h2>
-          <Link to="/inspections" className="flex items-center gap-2" style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent-color)', textDecoration: 'none' }}>
-            View Full Log <ArrowUpRight size={18} />
+      {/* ─── RECENT ─── */}
+      <section className="equip_Dashboard__section">
+        <div className="equip_Dashboard__sectionHead">
+          <h2 className="equip_Dashboard__sectionTitle">Recent Inspections</h2>
+          <Link to="/inspections" className="equip_Dashboard__viewAll">
+            View Full Log <ArrowUpRight size={16} />
           </Link>
         </div>
 
-        <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div className="table-container" style={{ border: 'none' }}>
-            <table>
+        <div className="equip_Dashboard__tableCard">
+          <div className="equip_Dashboard__tableScroll">
+            <table className="equip_Dashboard__table">
               <thead>
                 <tr>
-                  <th>CLIENT</th>
-                  <th>EQUIPMENT</th>
-                  <th>SERIAL</th>
-                  <th>DATE</th>
-                  <th>STATUS</th>
-                  <th style={{ textAlign: 'right' }}>ACTIONS</th>
+                  <th>Client</th>
+                  <th>Equipment</th>
+                  <th>Serial</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {recentInspections.length > 0 ? recentInspections.map((inspection) => (
-                  <tr key={inspection._id}>
-                    <td>
-                      <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{inspection.client?.name}</span>
-                    </td>
-                    <td>
-                      <div className="flex flex-col">
-                        <span style={{ fontWeight: 600 }}>{inspection.equipmentName}</span>
-                        <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600 }}>{inspection.equipmentCategory}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <code style={{ fontSize: 12, background: '#f1f5f9', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>
-                        {inspection.serialNumber || 'N/A'}
-                      </code>
-                    </td>
-                    <td style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>
-                      {new Date(inspection.inspectionDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </td>
-                    <td>
-                      <span className={`badge badge-${inspection.status.toLowerCase().replace(' ', '-')}`}>
-                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }}></div>
-                        {inspection.status}
-                      </span>
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <Link to={`/inspections/${inspection._id}/checklist`} style={{
-                        color: 'var(--text-primary)',
-                        background: '#f1f5f9',
-                        padding: '8px 16px',
-                        borderRadius: 10,
-                        fontSize: 13,
-                        fontWeight: 700,
-                        textDecoration: 'none',
-                        transition: 'var(--transition)'
-                      }} className="hover:bg-slate-200">
-                        {inspection.status === 'Completed' ? 'View' : 'Continue'}
-                      </Link>
-                    </td>
-                  </tr>
-                )) : (
+                {recentInspections.length > 0 ? (
+                  recentInspections.map(inspection => (
+                    <tr key={inspection._id}>
+                      <td>
+                        <span className="equip_Dashboard__cellClient">
+                          {inspection.client?.name || '—'}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="equip_Dashboard__cellEquipment">
+                          <span className="equip_Dashboard__cellEquipmentName">
+                            {inspection.equipmentName}
+                          </span>
+                          <span className="equip_Dashboard__cellEquipmentCategory">
+                            {inspection.equipmentCategory}
+                          </span>
+                        </div>
+                      </td>
+                      <td>
+                        <code className="equip_Dashboard__code">
+                          {inspection.serialNumber || 'N/A'}
+                        </code>
+                      </td>
+                      <td>
+                        <span className="equip_Dashboard__cellDate">
+                          {new Date(inspection.inspectionDate).toLocaleDateString(
+                            undefined,
+                            { month: 'short', day: 'numeric', year: 'numeric' }
+                          )}
+                        </span>
+                      </td>
+                      <td>
+                        <StatusBadge status={inspection.status} />
+                      </td>
+                      <td className="equip_Dashboard__cellActions">
+                        <Link
+                          to={`/inspections/${inspection._id}/checklist`}
+                          className="equip_Dashboard__actionLink"
+                        >
+                          {inspection.status === 'Completed' ? 'View' : 'Continue'}
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
                   <tr>
-                    <td colSpan="6" style={{ textAlign: 'center', padding: 64, color: 'var(--text-secondary)', fontWeight: 500 }}>
+                    <td colSpan="6" className="equip_Dashboard__empty">
                       No recent records found.
                     </td>
                   </tr>
@@ -176,7 +228,7 @@ const Dashboard = () => {
             </table>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 };

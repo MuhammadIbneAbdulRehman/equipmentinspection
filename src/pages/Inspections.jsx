@@ -1,11 +1,14 @@
+// src/pages/Inspections.jsx
+
 import { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';  // ← useSearchParams added
 import API from '../api/axios';
 import { useToast } from '../context/ToastContext';
 import { EQUIPMENT_DATA, CATEGORIES } from '../data/equipment';
-import { 
-  ClipboardCheck, 
-  Plus, 
-  Search, 
+import {
+  ClipboardCheck,
+  Plus,
+  Search,
   X,
   Calendar,
   Settings2,
@@ -13,9 +16,8 @@ import {
   Trash2,
   Hash,
   BoxSelect,
-  MoreVertical
 } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
+import './styles/Inspections.css';
 
 const Inspections = () => {
   const [inspections, setInspections] = useState([]);
@@ -29,17 +31,18 @@ const Inspections = () => {
     equipmentName: '',
     equipmentId: '',
     serialNumber: '',
-    inspectionDate: new Date().toISOString().split('T')[0]
+    inspectionDate: new Date().toISOString().split('T')[0],
   });
 
   const navigate = useNavigate();
   const { addToast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();   // ← ADD
 
   const fetchData = async () => {
     try {
       const [insRes, cliRes] = await Promise.all([
         API.get('/inspections'),
-        API.get('/clients')
+        API.get('/clients'),
       ]);
       setInspections(insRes.data);
       setClients(cliRes.data);
@@ -54,7 +57,26 @@ const Inspections = () => {
     fetchData();
   }, []);
 
-  const handleSubmit = async (e) => {
+  // ══════════════════════════════════════════════════════════════
+  // AUTO-SELECT CLIENT + OPEN MODAL when arriving with ?clientId=...
+  // Triggered from the Clients page "Start Inspection" button.
+  // ══════════════════════════════════════════════════════════════
+  useEffect(() => {
+    const clientId = searchParams.get('clientId');
+    if (clientId && clients.length > 0) {
+      setFormData(prev => ({
+        ...prev,
+        client: clientId,
+        inspectionDate: new Date().toISOString().split('T')[0],
+      }));
+      setShowModal(true);
+
+      // Clear the query param so it doesn't reopen on refresh
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, clients, setSearchParams]);
+
+  const handleSubmit = async e => {
     e.preventDefault();
     try {
       const res = await API.post('/inspections', formData);
@@ -66,7 +88,7 @@ const Inspections = () => {
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async id => {
     if (window.confirm('Erase this inspection record permanently?')) {
       try {
         await API.delete(`/inspections/${id}`);
@@ -78,101 +100,154 @@ const Inspections = () => {
     }
   };
 
-  const filteredInspections = inspections.filter(i => 
-    i.client?.name.toLowerCase().includes(search.toLowerCase()) ||
-    i.equipmentName.toLowerCase().includes(search.toLowerCase()) ||
-    i.status.toLowerCase().includes(search.toLowerCase())
+  const filteredInspections = inspections.filter(
+    i =>
+      i.client?.name.toLowerCase().includes(search.toLowerCase()) ||
+      i.equipmentName.toLowerCase().includes(search.toLowerCase()) ||
+      i.status.toLowerCase().includes(search.toLowerCase())
   );
 
-  return (
-    <div className="flex flex-col gap-10">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-2" style={{ color: 'var(--accent-color)' }}>
-            <ClipboardCheck size={18} />
-            <span style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Logs</span>
-          </div>
-          <h1 style={{ fontSize: 'clamp(24px, 5vw, 36px)', fontWeight: 800 }}>Inspection Logs</h1>
-          <p style={{ color: 'var(--text-secondary)', fontWeight: 500, marginTop: 4 }}>Track all assessed equipment and their current status.</p>
-        </div>
-        <button onClick={() => setShowModal(true)} className="btn-primary" style={{ width: '100%', sm: 'auto' }}>
-          <Plus size={20} /> New Inspection
-        </button>
-      </div>
+  const statusSlug = s => s.toLowerCase().replace(' ', '-');
 
-      <div className="glass-card flex items-center gap-4" style={{ padding: '0 24px', height: 60, boxShadow: 'var(--shadow-sm)' }}>
-        <Search size={20} color="var(--text-muted)" />
-        <input 
-          type="text" 
-          placeholder="Search logs by client, equipment type, or status..." 
-          className="w-full"
-          style={{ background: 'transparent', border: 'none', padding: '12px 0', fontSize: 15, fontWeight: 500 }}
+  // ─── Find pre-selected client to show in the banner ───
+  const preselectedClient = clients.find(c => c._id === formData.client);
+
+  return (
+    <div className="equip_Inspections">
+      {/* ─── HEADER ─── */}
+      <header className="equip_Inspections__header">
+        <div>
+          <div className="equip_Inspections__eyebrow">
+            <ClipboardCheck size={16} />
+            <span>Logs</span>
+          </div>
+          <h1 className="equip_Inspections__title">Inspection Logs</h1>
+          <p className="equip_Inspections__subtitle">
+            Track all assessed equipment and their current status.
+          </p>
+        </div>
+        {/* <button
+          onClick={() => setShowModal(true)}
+          className="equip_Inspections__addBtn"
+        >
+          <Plus size={18} /> New Inspection
+        </button> */}
+      </header>
+
+      {/* ─── SEARCH ─── */}
+      <div className="equip_Inspections__search">
+        <Search size={20} className="equip_Inspections__searchIcon" />
+        <input
+          type="text"
+          placeholder="Search logs by client, equipment type, or status..."
+          className="equip_Inspections__searchInput"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={e => setSearch(e.target.value)}
         />
       </div>
 
-      <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div className="table-container" style={{ border: 'none' }}>
-          <table>
+      {/* ─── TABLE ─── */}
+      <div className="equip_Inspections__tableCard">
+        <div className="equip_Inspections__tableScroll">
+          <table className="equip_Inspections__table">
             <thead>
               <tr>
-                <th>CLIENT / COMPANY</th>
-                <th>EQUIPMENT SPECIFICATIONS</th>
-                <th>ASSET IDENTIFIERS</th>
-                <th>ACTIVITY DATE</th>
-                <th>STATUS</th>
-                <th style={{ textAlign: 'right' }}>OPERATIONS</th>
+                <th>Client / Company</th>
+                <th>Equipment Specifications</th>
+                <th>Asset Identifiers</th>
+                <th>Activity Date</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Operations</th>
               </tr>
             </thead>
             <tbody>
-              {filteredInspections.length > 0 ? filteredInspections.map((inspection) => (
-                <tr key={inspection._id}>
-                  <td style={{ fontWeight: 700, fontSize: 15 }}>{inspection.client?.name}</td>
-                  <td>
-                    <div className="flex flex-col">
-                      <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{inspection.equipmentName}</span>
-                      <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 700 }}>{inspection.equipmentCategory}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="flex flex-col gap-1.5" style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>
-                      <div className="flex items-center gap-1.5"><BoxSelect size={12} color="var(--text-muted)" /> {inspection.equipmentId || 'ID UNSET'}</div>
-                      <div className="flex items-center gap-1.5"><Hash size={12} color="var(--text-muted)" /> {inspection.serialNumber || 'SN UNSET'}</div>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="flex items-center gap-2" style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)' }}>
-                      <Calendar size={14} color="var(--text-muted)" /> 
-                      {new Date(inspection.inspectionDate).toLocaleDateString()}
-                    </div>
-                  </td>
-                  <td>
-                    <span className={`badge badge-${inspection.status.toLowerCase().replace(' ', '-')}`}>
-                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }}></div>
-                      {inspection.status}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div className="flex justify-end gap-3 px-4">
-                      <Link to={`/inspections/${inspection._id}/checklist`} style={{ textDecoration: 'none' }}>
-                        <button className="btn-secondary" style={{ padding: '8px 16px', borderRadius: 10, background: '#f8fafc', fontSize: 13, fontWeight: 700 }}>
-                          {inspection.status === 'Completed' ? 'View Analysis' : 'Resume Work'} <ArrowRight size={16} />
+              {filteredInspections.length > 0 ? (
+                filteredInspections.map(inspection => (
+                  <tr key={inspection._id}>
+                    <td>
+                      <span className="equip_Inspections__cellClient">
+                        {inspection.client?.name || '—'}
+                      </span>
+                    </td>
+
+                    <td>
+                      <div className="equip_Inspections__cellEquipment">
+                        <span className="equip_Inspections__equipmentName">
+                          {inspection.equipmentName}
+                        </span>
+                        <span className="equip_Inspections__equipmentCategory">
+                          {inspection.equipmentCategory}
+                        </span>
+                      </div>
+                    </td>
+
+                    <td>
+                      <div className="equip_Inspections__cellIdentifiers">
+                        <div className="equip_Inspections__identifierRow">
+                          <BoxSelect size={12} />
+                          {inspection.equipmentId || 'ID UNSET'}
+                        </div>
+                        <div className="equip_Inspections__identifierRow">
+                          <Hash size={12} />
+                          {inspection.serialNumber || 'SN UNSET'}
+                        </div>
+                      </div>
+                    </td>
+
+                    <td>
+                      <div className="equip_Inspections__cellDate">
+                        <Calendar size={14} />
+                        {new Date(inspection.inspectionDate).toLocaleDateString(
+                          undefined,
+                          { month: 'short', day: 'numeric', year: 'numeric' }
+                        )}
+                      </div>
+                    </td>
+
+                    <td>
+                      <span
+                        className={`equip_Inspections__status equip_Inspections__status--${statusSlug(
+                          inspection.status
+                        )}`}
+                      >
+                        <span className="equip_Inspections__statusDot" />
+                        {inspection.status}
+                      </span>
+                    </td>
+
+                    <td className="equip_Inspections__cellActions">
+                      <div className="equip_Inspections__actionGroup">
+                        <Link
+                          to={`/inspections/${inspection._id}/checklist`}
+                          className="equip_Inspections__actionBtn"
+                        >
+                          {inspection.status === 'Completed'
+                            ? 'View Analysis'
+                            : 'Resume Work'}{' '}
+                          <ArrowRight size={14} />
+                        </Link>
+                        <button
+                          onClick={() => handleDelete(inspection._id)}
+                          className="equip_Inspections__iconBtn"
+                          title="Revoke Record"
+                          aria-label="Delete"
+                        >
+                          <Trash2 size={16} />
                         </button>
-                      </Link>
-                      <button onClick={() => handleDelete(inspection._id)} className="btn-secondary" style={{ padding: 10, borderRadius: 10, background: '#fef2f2' }} title="Revoke Record">
-                        <Trash2 size={18} color="var(--danger)" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              )) : (
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
                 <tr>
-                  <td colSpan="6" style={{ textAlign: 'center', padding: 80, color: 'var(--text-muted)' }}>
-                    <div className="flex flex-col items-center gap-4 opacity-50">
-                      <ClipboardCheck size={64} />
-                      <p style={{ fontSize: 16, fontWeight: 600 }}>No inspection logs found.</p>
-                    </div>
+                  <td colSpan="6" className="equip_Inspections__empty">
+                    <ClipboardCheck
+                      size={64}
+                      className="equip_Inspections__emptyIcon"
+                    />
+                    <p className="equip_Inspections__emptyText">
+                      No inspection logs found.
+                    </p>
                   </td>
                 </tr>
               )}
@@ -181,92 +256,208 @@ const Inspections = () => {
         </div>
       </div>
 
+      {/* ─── MODAL ─── */}
       {showModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(8px)', display: 'grid', placeItems: 'center', zIndex: 1000, padding: '16px' }} className="animate-fade-in">
-          <div className="glass-card" style={{ width: '100%', maxWidth: 640, position: 'relative', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', maxHeight: '90vh', overflowY: 'auto' }}>
-            <button onClick={() => setShowModal(false)} style={{ position: 'absolute', right: 24, top: 24, background: 'var(--accent-soft)', color: 'var(--accent-color)', padding: 6, borderRadius: '50%' }}>
-              <X size={20} />
+        <div className="equip_Inspections__modalBackdrop">
+          <div className="equip_Inspections__modal">
+            <button
+              onClick={() => setShowModal(false)}
+              className="equip_Inspections__modalClose"
+              aria-label="Close"
+            >
+              <X size={18} />
             </button>
-            <div className="mb-8">
-              <h2 style={{ fontSize: 28, fontWeight: 800 }}>Initialize Inspection</h2>
-              <p style={{ color: 'var(--text-secondary)', fontWeight: 500, marginTop: 4 }}>Configure the parameters for the equipment to be assessed.</p>
+
+            <div className="equip_Inspections__modalHeader">
+              <h2 className="equip_Inspections__modalTitle">
+                Initialize Inspection
+              </h2>
+              <p className="equip_Inspections__modalSubtitle">
+                Configure the parameters for the equipment to be assessed.
+              </p>
             </div>
-            
-            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex flex-col gap-2">
-                  <label>Assign to Client</label>
-                  <select 
-                    value={formData.client}
-                    onChange={(e) => setFormData({...formData, client: e.target.value})}
-                    required
-                  >
-                    <option value="">Choose partner...</option>
-                    {clients.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
-                  </select>
+
+            {/* ─── Pre-selected client banner (NEW) ─── */}
+            {preselectedClient && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '14px 16px',
+                  marginBottom: 20,
+                  background: '#F5EEDD',
+                  border: '1px solid #E8DDBE',
+                  borderRadius: 12,
+                }}
+              >
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    background: 'linear-gradient(135deg, #C9AE70, #BA9A59)',
+                    color: '#fff',
+                    display: 'grid',
+                    placeItems: 'center',
+                    fontWeight: 800,
+                    fontSize: 15,
+                    fontFamily: "'Outfit', 'Inter', sans-serif",
+                    flexShrink: 0,
+                  }}
+                >
+                  {preselectedClient.name.charAt(0).toUpperCase()}
                 </div>
-                <div className="flex flex-col gap-2">
-                  <label>Assessment Date</label>
-                  <input 
+                <div style={{ minWidth: 0 }}>
+                  <p
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: '#9C7F41',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      margin: 0,
+                    }}
+                  >
+                    Inspection for
+                  </p>
+                  <p
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: '#2A2620',
+                      margin: '2px 0 0',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {preselectedClient.name}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="equip_Inspections__form">
+              {/* Row 1: Client + Date */}
+              <div className="equip_Inspections__row">
+                {/* Row 1: Date only (client is pre-selected from Clients page) */}
+                <div className="equip_Inspections__field">
+                  <label className="equip_Inspections__label">
+                    Assessment Date
+                  </label>
+                  <input
                     type="date"
+                    className="equip_Inspections__input"
                     value={formData.inspectionDate}
-                    onChange={(e) => setFormData({...formData, inspectionDate: e.target.value})}
+                    onChange={e =>
+                      setFormData({
+                        ...formData,
+                        inspectionDate: e.target.value,
+                      })
+                    }
                     required
                   />
                 </div>
+             
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex flex-col gap-2">
-                  <label>Asset Category</label>
-                  <select 
+              {/* Row 2: Category + Equipment */}
+              <div className="equip_Inspections__row">
+                <div className="equip_Inspections__field">
+                  <label className="equip_Inspections__label">
+                    Asset Category
+                  </label>
+                  <select
+                    className="equip_Inspections__select"
                     value={formData.equipmentCategory}
-                    onChange={(e) => setFormData({...formData, equipmentCategory: e.target.value, equipmentName: ''})}
+                    onChange={e =>
+                      setFormData({
+                        ...formData,
+                        equipmentCategory: e.target.value,
+                        equipmentName: '',
+                      })
+                    }
                     required
                   >
                     <option value="">Choose category...</option>
-                    {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                    {CATEGORIES.map(cat => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
                   </select>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <label>Equipment Model</label>
-                  <select 
+                <div className="equip_Inspections__field">
+                  <label className="equip_Inspections__label">
+                    Equipment Model
+                  </label>
+                  <select
+                    className="equip_Inspections__select"
                     value={formData.equipmentName}
-                    onChange={(e) => setFormData({...formData, equipmentName: e.target.value})}
+                    onChange={e =>
+                      setFormData({
+                        ...formData,
+                        equipmentName: e.target.value,
+                      })
+                    }
                     required
                     disabled={!formData.equipmentCategory}
                   >
                     <option value="">Specify equipment...</option>
-                    {formData.equipmentCategory && EQUIPMENT_DATA[formData.equipmentCategory].map(name => (
-                      <option key={name} value={name}>{name}</option>
-                    ))}
+                    {formData.equipmentCategory &&
+                      EQUIPMENT_DATA[formData.equipmentCategory].map(name => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
                   </select>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex flex-col gap-2">
-                  <label>Asset ID / Tag</label>
-                  <input 
-                    type="text" 
+              {/* Row 3: Asset ID + Serial */}
+              <div className="equip_Inspections__row">
+                <div className="equip_Inspections__field">
+                  <label className="equip_Inspections__label">
+                    Model No / Asset ID
+                  </label>
+                  <input
+                    type="text"
+                    className="equip_Inspections__input"
                     placeholder="e.g. EQ-PASS-102"
                     value={formData.equipmentId}
-                    onChange={(e) => setFormData({...formData, equipmentId: e.target.value})}
+                    onChange={e =>
+                      setFormData({
+                        ...formData,
+                        equipmentId: e.target.value,
+                      })
+                    }
                   />
                 </div>
-                <div className="flex flex-col gap-2">
-                  <label>Serial Number</label>
-                  <input 
-                    type="text" 
+                <div className="equip_Inspections__field">
+                  <label className="equip_Inspections__label">
+                    Serial Number
+                  </label>
+                  <input
+                    type="text"
+                    className="equip_Inspections__input"
                     placeholder="e.g. SERIAL-K-82991"
                     value={formData.serialNumber}
-                    onChange={(e) => setFormData({...formData, serialNumber: e.target.value})}
+                    onChange={e =>
+                      setFormData({
+                        ...formData,
+                        serialNumber: e.target.value,
+                      })
+                    }
                   />
                 </div>
               </div>
 
-              <button type="submit" className="btn-primary w-full mt-4" style={{ height: 56 }}>
-                Initialize Checklist <Settings2 size={20} />
+              <button
+                type="submit"
+                className="equip_Inspections__submit"
+              >
+                Initialize Checklist <Settings2 size={18} />
               </button>
             </form>
           </div>

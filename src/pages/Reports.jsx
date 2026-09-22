@@ -1,29 +1,127 @@
+// src/pages/Reports.jsx
+
 import { useState, useEffect } from 'react';
 import API from '../api/axios';
 import { useToast } from '../context/ToastContext';
-import { 
-  FileText, 
-  Download, 
-  Eye, 
-  Trash2, 
+import {
+  Download,
+  Eye,
+  Trash2,
   Search,
   Calendar,
   User,
-  ExternalLink,
   Edit3,
   X,
   CheckCircle2,
   FileCheck2,
   MoreHorizontal,
-  ChevronRight
+  AlertTriangle,
+  TrendingUp,
+  Award,
+  Activity,
 } from 'lucide-react';
+import './styles/Reports.css';
+
+// ═══════════════════════════════════════════════════════════════
+//  STATS HELPERS
+// ═══════════════════════════════════════════════════════════════
+
+const computeStats = (responses = []) => {
+  const pf = responses.filter(r => r.questionType === 'pass_fail');
+  const ok = pf.filter(r => r.answer === 'OK').length;
+  const repair = pf.filter(r => r.answer === 'Needs Repair').length;
+  const na = pf.filter(r => r.answer === 'N/A').length;
+  const applicable = ok + repair;
+  const score = applicable > 0 ? Math.round((ok / applicable) * 100) : 0;
+
+  let grade = 'F';
+  let gradeLabel = 'Critical';
+  if (score >= 90) { grade = 'A'; gradeLabel = 'Excellent'; }
+  else if (score >= 75) { grade = 'B'; gradeLabel = 'Good'; }
+  else if (score >= 60) { grade = 'C'; gradeLabel = 'Fair'; }
+  else if (score >= 40) { grade = 'D'; gradeLabel = 'Poor'; }
+
+  let verdict = 'PASS';
+  if (repair > 0) verdict = 'PASS WITH REPAIRS';
+  if (score < 50) verdict = 'FAIL';
+
+  return {
+    ok, repair, na,
+    total: pf.length,
+    applicable,
+    score, grade, gradeLabel, verdict,
+    okPct: pf.length ? Math.round((ok / pf.length) * 100) : 0,
+    repairPct: pf.length ? Math.round((repair / pf.length) * 100) : 0,
+    naPct: pf.length ? Math.round((na / pf.length) * 100) : 0,
+  };
+};
+
+const computeStepStats = (responses = []) => {
+  // Group by stepNumber
+  const map = new Map();
+  for (const r of responses) {
+    const key = `${r.stepNumber}`;
+    if (!map.has(key)) {
+      map.set(key, {
+        stepNumber: r.stepNumber,
+        stepName: r.stepName,
+        responses: [],
+      });
+    }
+    map.get(key).responses.push(r);
+  }
+
+  const groups = Array.from(map.values())
+    .sort((a, b) => a.stepNumber - b.stepNumber);
+
+  return groups.map(g => {
+    const pf = g.responses.filter(r => r.questionType === 'pass_fail');
+    const ok = pf.filter(r => r.answer === 'OK').length;
+    const repair = pf.filter(r => r.answer === 'Needs Repair').length;
+    const na = pf.filter(r => r.answer === 'N/A').length;
+    const applicable = ok + repair;
+    const score = applicable > 0 ? Math.round((ok / applicable) * 100) : 100;
+
+    let status = 'OK';
+    let statusColor = '#10b981';
+    if (repair > 0 && score >= 70) { status = 'Needs Attention'; statusColor = '#e67e22'; }
+    else if (repair > 0) { status = 'Critical'; statusColor = '#e53935'; }
+
+    return {
+      stepNumber: g.stepNumber,
+      stepName: g.stepName,
+      ok, repair, na,
+      total: pf.length,
+      score, status, statusColor,
+    };
+  });
+};
+
+const scoreColor = (score) => {
+  if (score >= 90) return '#10b981';
+  if (score >= 75) return '#6ba644';
+  if (score >= 60) return '#C9AE70';
+  if (score >= 40) return '#e67e22';
+  return '#e53935';
+};
+
+const scoreBg = (score) => {
+  if (score >= 90) return 'rgba(16, 185, 129, 0.12)';
+  if (score >= 75) return 'rgba(107, 166, 68, 0.12)';
+  if (score >= 60) return 'rgba(201, 174, 112, 0.15)';
+  if (score >= 40) return 'rgba(230, 126, 34, 0.12)';
+  return 'rgba(229, 57, 53, 0.12)';
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  COMPONENT
+// ═══════════════════════════════════════════════════════════════
 
 const Reports = () => {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [viewingReport, setViewingReport] = useState(null);
-  const [editingNotes, setEditingNotes] = useState(null);
 
   const { addToast } = useToast();
 
@@ -42,7 +140,7 @@ const Reports = () => {
     fetchReports();
   }, []);
 
-  const handleDelete = async (id) => {
+  const handleDelete = async id => {
     if (window.confirm('Delete this report? This action cannot be reversed.')) {
       try {
         await API.delete(`/reports/${id}`);
@@ -54,205 +152,509 @@ const Reports = () => {
     }
   };
 
-  const handleDownload = (id, reportNumber) => {
-    const token = localStorage.getItem('pass_token');
-    window.open(`/api/reports/${id}/download?token=${token}`, '_blank');
-    addToast(`Preparing ${reportNumber} for retrieval...`, 'info');
-  };
-
-  const handleUpdateNotes = async () => {
+  const handleDownload = async (id, reportNumber) => {
     try {
-      await API.put(`/reports/${editingNotes.id}`, {
-        findings: editingNotes.findings,
-        recommendations: editingNotes.recommendations
+      addToast(`Preparing ${reportNumber}...`, 'info');
+      const token = localStorage.getItem('pass_token');
+
+      const res = await fetch(`/api/reports/${id}/download`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
       });
-      addToast('Report refinements confirmed.', 'success');
-      setEditingNotes(null);
-      fetchReports();
+
+      if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+
+      const disposition = res.headers.get('Content-Disposition') || '';
+      const match = disposition.match(/filename="?([^"]+)"?/);
+      const filename = match ? match[1] : `${reportNumber}.docx`;
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      addToast(`${reportNumber} downloaded.`, 'success');
     } catch (err) {
-      addToast('System could not save refinements.', 'error');
+      console.error('Download error:', err);
+      addToast('Download failed. Please try again.', 'error');
     }
   };
 
-  const filteredReports = reports.filter(r => 
-    r.reportNumber.toLowerCase().includes(search.toLowerCase()) ||
-    r.client?.name.toLowerCase().includes(search.toLowerCase()) ||
-    r.inspection?.equipmentName.toLowerCase().includes(search.toLowerCase())
+  const filteredReports = reports.filter(
+    r =>
+      r.reportNumber?.toLowerCase().includes(search.toLowerCase()) ||
+      r.client?.name?.toLowerCase().includes(search.toLowerCase()) ||
+      r.inspection?.equipmentName?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
-    <div className="flex flex-col gap-10">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+    <div className="equip_Reports">
+      {/* ─── HEADER ─── */}
+      <header className="equip_Reports__header">
         <div>
-          <div className="flex items-center gap-2 mb-2" style={{ color: 'var(--accent-color)' }}>
-            <FileCheck2 size={18} />
-            <span style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Archives</span>
+          <div className="equip_Reports__eyebrow">
+            <FileCheck2 size={16} />
+            <span>Archives</span>
           </div>
-          <h1 style={{ fontSize: 'clamp(24px, 5vw, 36px)', fontWeight: 800 }}>Formal Reports</h1>
-          <p style={{ color: 'var(--text-secondary)', fontWeight: 500, marginTop: 4 }}>Manage, analyze and distribute official assessment documentation.</p>
+          <h1 className="equip_Reports__title">Formal Reports</h1>
+          <p className="equip_Reports__subtitle">
+            Manage, analyze and distribute official assessment documentation.
+          </p>
         </div>
-      </div>
+      </header>
 
-      <div className="glass-card flex items-center gap-4" style={{ padding: '0 24px', height: 60, boxShadow: 'var(--shadow-sm)' }}>
-        <Search size={20} color="var(--text-muted)" />
-        <input 
-          type="text" 
-          placeholder="Lookup reports by unique ID, client entity, or equipment model..." 
-          className="w-full"
-          style={{ background: 'transparent', border: 'none', padding: '12px 0', fontSize: 15, fontWeight: 500 }}
+      {/* ─── SEARCH ─── */}
+      <div className="equip_Reports__search">
+        <Search size={20} className="equip_Reports__searchIcon" />
+        <input
+          type="text"
+          placeholder="Lookup reports by unique ID, client entity, or equipment model..."
+          className="equip_Reports__searchInput"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={e => setSearch(e.target.value)}
         />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 380px), 1fr))', gap: '24px' }}>
-        {filteredReports.length > 0 ? filteredReports.map((report) => (
-          <div key={report._id} className="glass-card flex flex-col gap-5 border-t-8 animate-fade-in" style={{ borderColor: 'var(--accent-color)', padding: 32 }}>
-            <div className="flex justify-between items-start">
-              <div>
-                <div style={{ background: 'var(--accent-soft)', color: 'var(--accent-color)', padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 800, display: 'inline-block', marginBottom: 8, fontFamily: "'Outfit', sans-serif" }}>
-                  {report.reportNumber}
-                </div>
-                <h3 style={{ fontSize: 20, fontWeight: 800 }}>{report.inspection?.equipmentName}</h3>
-              </div>
-              <button 
-                className="btn-secondary" 
-                style={{ padding: 8, borderRadius: 10, background: '#f8fafc' }}
-              >
-                <MoreHorizontal size={20} color="var(--text-muted)" />
-              </button>
-            </div>
+      {/* ─── GRID ─── */}
+      <div className="equip_Reports__grid">
+        {filteredReports.length > 0 ? (
+          filteredReports.map(report => {
+            const stats = report.inspection?.responses
+              ? computeStats(report.inspection.responses)
+              : null;
 
-            <div className="flex flex-col gap-3 py-2">
-              <div className="flex items-center gap-3" style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: '#f1f5f9', display: 'grid', placeItems: 'center' }}>
-                  <User size={16} color="var(--text-muted)" />
+            return (
+              <div key={report._id} className="equip_Reports__card">
+                {/* Header */}
+                <div className="equip_Reports__cardHeader">
+                  <div className="equip_Reports__cardHeaderLeft">
+                    <div className="equip_Reports__reportNumber">
+                      {report.reportNumber}
+                    </div>
+                    <h3 className="equip_Reports__equipmentName">
+                      {report.inspection?.equipmentName || 'Report'}
+                    </h3>
+                  </div>
+                  <button
+                    className="equip_Reports__menuBtn"
+                    aria-label="More options"
+                  >
+                    <MoreHorizontal size={18} />
+                  </button>
                 </div>
-                {report.client?.name}
-              </div>
-              <div className="flex items-center gap-3" style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-secondary)' }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: '#f1f5f9', display: 'grid', placeItems: 'center' }}>
-                  <Calendar size={16} color="var(--text-muted)" />
-                </div>
-                Authorized: {new Date(report.generatedAt).toLocaleDateString()}
-              </div>
-            </div>
 
-            <div className="flex gap-3 mt-4 pt-4 border-t border-slate-100">
-              <button 
-                onClick={() => setViewingReport(report)}
-                className="flex-1 btn-secondary"
-                style={{ height: 48, fontSize: 13, border: '1px solid var(--card-border)', background: 'white' }}
-              >
-                <Eye size={18} /> Inspect Details
-              </button>
-              <button 
-                onClick={() => handleDownload(report._id, report.reportNumber)}
-                className="btn-primary" 
-                style={{ width: 48, height: 48, padding: 0 }}
-                title="Secure Download"
-              >
-                <Download size={20} />
-              </button>
-              <button 
-                onClick={() => handleDelete(report._id)}
-                className="btn-secondary" 
-                style={{ width: 48, height: 48, padding: 0, background: '#fef2f2', border: 'none' }}
-                title="Erase Archive"
-              >
-                <Trash2 size={20} color="var(--danger)" />
-              </button>
-            </div>
-          </div>
-        )) : (
-          <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 120, color: 'var(--text-muted)' }}>
-            <div className="flex flex-col items-center gap-6 opacity-40">
-              <FileCheck2 size={80} />
-              <p style={{ fontSize: 18, fontWeight: 600 }}>Archived reports will manifest here once inspections are finalized.</p>
-            </div>
+                {/* Stats row */}
+                {stats && (
+                  <div className="equip_Reports__statsRow">
+                    <div
+                      className="equip_Reports__scoreBadge"
+                      style={{
+                        background: scoreBg(stats.score),
+                        borderColor: scoreColor(stats.score),
+                      }}
+                    >
+                      <span
+                        className="equip_Reports__scoreBadgeValue"
+                        style={{ color: scoreColor(stats.score) }}
+                      >
+                        {stats.score}
+                      </span>
+                      <span
+                        className="equip_Reports__scoreBadgeGrade"
+                        style={{ color: scoreColor(stats.score) }}
+                      >
+                        {stats.grade}
+                      </span>
+                    </div>
+
+                    <div className="equip_Reports__pillGroup">
+                      <span className="equip_Reports__pill equip_Reports__pill--ok">
+                        {stats.ok} OK
+                      </span>
+                      <span className="equip_Reports__pill equip_Reports__pill--repair">
+                        {stats.repair} Repair
+                      </span>
+                      <span className="equip_Reports__pill equip_Reports__pill--na">
+                        {stats.na} N/A
+                      </span>
+                    </div>
+
+                    <div
+                      className="equip_Reports__verdict"
+                      style={{
+                        background:
+                          stats.verdict === 'PASS'
+                            ? '#10b981'
+                            : stats.verdict === 'FAIL'
+                              ? '#e53935'
+                              : '#e67e22',
+                      }}
+                    >
+                      {stats.verdict}
+                    </div>
+                  </div>
+                )}
+
+                {/* Meta */}
+                <div className="equip_Reports__meta">
+                  <div className="equip_Reports__metaRow">
+                    <div className="equip_Reports__metaIcon">
+                      <User size={15} />
+                    </div>
+                    <span className="equip_Reports__metaText">
+                      {report.client?.name || 'Unknown Client'}
+                    </span>
+                  </div>
+                  <div className="equip_Reports__metaRow">
+                    <div className="equip_Reports__metaIcon">
+                      <Calendar size={15} />
+                    </div>
+                    <span className="equip_Reports__metaText">
+                      {new Date(report.generatedAt).toLocaleDateString(
+                        undefined,
+                        { month: 'short', day: 'numeric', year: 'numeric' }
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="equip_Reports__cardFooter">
+                  <button
+                    onClick={() => setViewingReport(report)}
+                    className="equip_Reports__inspectBtn"
+                  >
+                    <Eye size={16} /> Inspect Details
+                  </button>
+                  <button
+                    onClick={() =>
+                      handleDownload(report._id, report.reportNumber)
+                    }
+                    className="equip_Reports__iconBtn equip_Reports__iconBtn--primary"
+                    title="Secure Download"
+                    aria-label="Download"
+                  >
+                    <Download size={18} />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(report._id)}
+                    className="equip_Reports__iconBtn equip_Reports__iconBtn--danger"
+                    title="Erase Archive"
+                    aria-label="Delete"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="equip_Reports__empty">
+            <FileCheck2 size={72} className="equip_Reports__emptyIcon" />
+            <p className="equip_Reports__emptyText">
+              Archived reports will appear here once inspections are finalized.
+            </p>
           </div>
         )}
       </div>
 
-      {/* Detail Modal */}
+      {/* ─── DETAIL MODAL ─── */}
       {viewingReport && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(12px)', display: 'grid', placeItems: 'center', zIndex: 2000, padding: '16px' }} className="animate-fade-in">
-          <div className="glass-card w-full" style={{ maxWidth: 840, maxHeight: '90vh', overflowY: 'auto', position: 'relative', padding: 'min(48px, 6vw)', boxShadow: '0 40px 80px -20px rgba(0,0,0,0.4)' }}>
-            <button onClick={() => setViewingReport(null)} style={{ position: 'absolute', right: 32, top: 32, background: 'var(--accent-soft)', color: 'var(--accent-color)', padding: 8, borderRadius: '50%' }}>
-              <X size={24} />
-            </button>
-            
-            <div className="border-b border-slate-100 pb-8 mb-8 sm:mb-10">
-              <div style={{ color: 'var(--accent-color)', fontWeight: 800, fontSize: 12, sm: 14, letterSpacing: '0.05em', marginBottom: 8, fontFamily: "'Outfit', sans-serif" }}>DOCUMENT ID: {viewingReport.reportNumber}</div>
-              <h2 style={{ fontSize: 'clamp(24px, 5vw, 36px)', fontWeight: 800 }}>Validation Summary</h2>
-            </div>
+        <DetailModal
+          report={viewingReport}
+          onClose={() => setViewingReport(null)}
+          onDownload={handleDownload}
+        />
+      )}
+    </div>
+  );
+};
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-10 mb-8 sm:mb-10">
-              <div className="flex flex-col gap-4">
-                <h4 style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Authorized Inspector</h4>
-                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
-                  <p style={{ fontWeight: 800, fontSize: 18, color: 'var(--text-primary)' }}>{viewingReport.inspector?.name}</p>
-                  <p style={{ fontSize: 13, color: 'var(--accent-color)', fontWeight: 700, marginTop: 4 }}>LIC: {viewingReport.inspector?.licenseNumber}</p>
-                  <div style={{ height: 1, background: 'var(--card-border)', margin: '16px 0' }}></div>
-                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>{viewingReport.inspector?.email}</p>
-                </div>
-              </div>
-              <div className="flex flex-col gap-4">
-                <h4 style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Client Organization</h4>
-                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
-                  <p style={{ fontWeight: 800, fontSize: 18, color: 'var(--text-primary)' }}>{viewingReport.client?.name}</p>
-                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 8, fontWeight: 500, lineHeight: 1.5 }}>{viewingReport.client?.address || 'Site records not specified'}</p>
-                </div>
-              </div>
-            </div>
+// ═══════════════════════════════════════════════════════════════
+//  DETAIL MODAL — STATS ONLY, NO QUESTION LIST
+// ═══════════════════════════════════════════════════════════════
 
-            <div className="flex flex-col gap-4 mb-8 sm:mb-10">
-              <h4 style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Equipment Overview & Status</h4>
-              <div className="bg-slate-900 text-white p-6 sm:p-8 rounded-3xl flex flex-col gap-6 sm:gap-8 shadow-xl">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white/10 p-4 sm:p-5 rounded-2xl border border-white/5 gap-4">
-                  <div>
-                    <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: 700, textTransform: 'uppercase' }}>Evaluated Asset</p>
-                    <p style={{ fontWeight: 800, fontSize: 18 }}>{viewingReport.inspection?.equipmentName}</p>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: 700, textTransform: 'uppercase' }}>Deployment Category</p>
-                    <p style={{ fontWeight: 800, fontSize: 18 }}>{viewingReport.inspection?.equipmentCategory}</p>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                  <div>
-                    <div className="flex items-center gap-2 mb-4">
-                      <CheckCircle2 size={18} color="var(--success)" />
-                      <p style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.6)' }}>Technical Findings</p>
-                    </div>
-                    <p style={{ lineHeight: 1.8, fontSize: 15, fontWeight: 400, color: 'rgba(255,255,255,0.9)' }}>{viewingReport.findings || 'Archive contains no specific findings.'}</p>
-                  </div>
-                  
-                  <div>
-                    <div className="flex items-center gap-2 mb-4">
-                      <Edit3 size={18} color="var(--accent-color)" />
-                      <p style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.6)' }}>Recommendations</p>
-                    </div>
-                    <p style={{ lineHeight: 1.8, fontSize: 15, fontWeight: 400, color: 'rgba(255,255,255,0.9)' }}>{viewingReport.recommendations || 'Archive contains no recommendations.'}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+const DetailModal = ({ report, onClose, onDownload }) => {
+  const responses = report.inspection?.responses || [];
+  const stats = computeStats(responses);
+  const stepStats = computeStepStats(responses);
 
-            <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-end gap-3 sm:gap-4">
-              <button onClick={() => setViewingReport(null)} className="btn-secondary w-full sm:w-auto" style={{ padding: '16px 32px' }}>Close Viewer</button>
-              <button 
-                onClick={() => handleDownload(viewingReport._id, viewingReport.reportNumber)}
-                className="btn-primary"
-                style={{ padding: '16px 40px' }}
+  return (
+    <div className="equip_Reports__modalBackdrop">
+      <div className="equip_Reports__modal equip_Reports__modal--wide">
+        <button
+          onClick={onClose}
+          className="equip_Reports__modalClose"
+          aria-label="Close"
+        >
+          <X size={20} />
+        </button>
+
+        {/* Header */}
+        <div className="equip_Reports__modalHeader">
+          <div className="equip_Reports__modalDocId">
+            Document ID: {report.reportNumber}
+          </div>
+          <h2 className="equip_Reports__modalTitle">
+            Inspection Statistics
+          </h2>
+          <p className="equip_Reports__modalSubtitle">
+            {report.inspection?.equipmentName} · {report.client?.name}
+          </p>
+        </div>
+
+        {/* ─── OVERALL STATS ─── */}
+        <div className="equip_Reports__overallSection">
+          <div className="equip_Reports__overallHeader">
+            <Activity size={18} color="#C9AE70" />
+            <span>Overall Performance</span>
+          </div>
+
+          <div className="equip_Reports__overallGrid">
+            {/* Score Card */}
+            <div
+              className="equip_Reports__bigCard"
+              style={{ borderColor: scoreColor(stats.score) }}
+            >
+              <TrendingUp size={20} color={scoreColor(stats.score)} />
+              <div
+                className="equip_Reports__bigValue"
+                style={{ color: scoreColor(stats.score) }}
               >
-                Download Document <Download size={20} />
-              </button>
+                {stats.score}
+              </div>
+              <div className="equip_Reports__bigLabel">Score / 100</div>
+            </div>
+
+            {/* Grade Card */}
+            <div
+              className="equip_Reports__bigCard"
+              style={{ borderColor: scoreColor(stats.score) }}
+            >
+              <Award size={20} color={scoreColor(stats.score)} />
+              <div
+                className="equip_Reports__bigValue"
+                style={{ color: scoreColor(stats.score) }}
+              >
+                {stats.grade}
+              </div>
+              <div className="equip_Reports__bigLabel">{stats.gradeLabel}</div>
+            </div>
+
+            {/* Verdict Card */}
+            <div
+              className="equip_Reports__bigCard"
+              style={{
+                borderColor:
+                  stats.verdict === 'PASS'
+                    ? '#10b981'
+                    : stats.verdict === 'FAIL'
+                      ? '#e53935'
+                      : '#e67e22',
+              }}
+            >
+              <CheckCircle2
+                size={20}
+                color={
+                  stats.verdict === 'PASS'
+                    ? '#10b981'
+                    : stats.verdict === 'FAIL'
+                      ? '#e53935'
+                      : '#e67e22'
+                }
+              />
+              <div
+                className="equip_Reports__bigValue equip_Reports__bigValue--text"
+                style={{
+                  color:
+                    stats.verdict === 'PASS'
+                      ? '#10b981'
+                      : stats.verdict === 'FAIL'
+                        ? '#e53935'
+                        : '#e67e22',
+                }}
+              >
+                {stats.verdict}
+              </div>
+              <div className="equip_Reports__bigLabel">
+                {stats.repair > 0
+                  ? `${stats.repair} item(s) to fix`
+                  : 'No issues'}
+              </div>
+            </div>
+          </div>
+
+          {/* Breakdown Bar */}
+          <div className="equip_Reports__breakdown">
+            <div className="equip_Reports__breakdownBar">
+              {stats.okPct > 0 && (
+                <div
+                  className="equip_Reports__breakdownSegment equip_Reports__breakdownSegment--ok"
+                  style={{ width: `${stats.okPct}%` }}
+                  title={`OK: ${stats.ok} (${stats.okPct}%)`}
+                />
+              )}
+              {stats.repairPct > 0 && (
+                <div
+                  className="equip_Reports__breakdownSegment equip_Reports__breakdownSegment--repair"
+                  style={{ width: `${stats.repairPct}%` }}
+                  title={`Needs Repair: ${stats.repair} (${stats.repairPct}%)`}
+                />
+              )}
+              {stats.naPct > 0 && (
+                <div
+                  className="equip_Reports__breakdownSegment equip_Reports__breakdownSegment--na"
+                  style={{ width: `${stats.naPct}%` }}
+                  title={`N/A: ${stats.na} (${stats.naPct}%)`}
+                />
+              )}
+            </div>
+            <div className="equip_Reports__breakdownLegend">
+              <span>
+                <span className="equip_Reports__legendDot equip_Reports__legendDot--ok" />
+                {stats.ok} OK ({stats.okPct}%)
+              </span>
+              <span>
+                <span className="equip_Reports__legendDot equip_Reports__legendDot--repair" />
+                {stats.repair} Needs Repair ({stats.repairPct}%)
+              </span>
+              <span>
+                <span className="equip_Reports__legendDot equip_Reports__legendDot--na" />
+                {stats.na} N/A ({stats.naPct}%)
+              </span>
             </div>
           </div>
         </div>
-      )}
+
+        {/* ─── STEP-WISE STATS ─── */}
+        <div className="equip_Reports__stepSection">
+          <div className="equip_Reports__overallHeader">
+            <Activity size={18} color="#C9AE70" />
+            <span>Category Breakdown ({stepStats.length} sections)</span>
+          </div>
+
+          <div className="equip_Reports__stepList">
+            {stepStats.map((step) => (
+              <div
+                key={step.stepNumber}
+                className="equip_Reports__stepCard"
+                style={{
+                  borderLeftColor: step.statusColor,
+                }}
+              >
+                <div className="equip_Reports__stepTop">
+                  <div className="equip_Reports__stepName">
+                    <span className="equip_Reports__stepNumber">
+                      {step.stepNumber}
+                    </span>
+                    {step.stepName}
+                  </div>
+                  <div
+                    className="equip_Reports__stepScore"
+                    style={{
+                      color: step.statusColor,
+                      background: scoreBg(step.score),
+                      borderColor: step.statusColor,
+                    }}
+                  >
+                    {step.score}%
+                  </div>
+                </div>
+
+                <div className="equip_Reports__stepMeta">
+                  <span className="equip_Reports__stepPill equip_Reports__stepPill--ok">
+                    {step.ok} OK
+                  </span>
+                  <span className="equip_Reports__stepPill equip_Reports__stepPill--repair">
+                    {step.repair} Repair
+                  </span>
+                  <span className="equip_Reports__stepPill equip_Reports__stepPill--na">
+                    {step.na} N/A
+                  </span>
+                  <span
+                    className="equip_Reports__stepStatus"
+                    style={{ color: step.statusColor }}
+                  >
+                    <AlertTriangle size={12} />
+                    {step.status}
+                  </span>
+                </div>
+
+                <div className="equip_Reports__stepBar">
+                  {step.ok > 0 && (
+                    <div
+                      className="equip_Reports__stepBarFill equip_Reports__stepBarFill--ok"
+                      style={{
+                        width: `${(step.ok / step.total) * 100}%`,
+                      }}
+                    />
+                  )}
+                  {step.repair > 0 && (
+                    <div
+                      className="equip_Reports__stepBarFill equip_Reports__stepBarFill--repair"
+                      style={{
+                        width: `${(step.repair / step.total) * 100}%`,
+                      }}
+                    />
+                  )}
+                  {step.na > 0 && (
+                    <div
+                      className="equip_Reports__stepBarFill equip_Reports__stepBarFill--na"
+                      style={{
+                        width: `${(step.na / step.total) * 100}%`,
+                      }}
+                    />
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ─── FINDINGS & RECOMMENDATIONS (if filled) ─── */}
+        {(report.findings || report.recommendations) && (
+          <div className="equip_Reports__equipmentBody" style={{ marginTop: 20 }}>
+            {report.findings && (
+              <div>
+                <div className="equip_Reports__sectionTitle">
+                  <CheckCircle2 size={16} color="#10b981" />
+                  Findings
+                </div>
+                <p className="equip_Reports__sectionText">{report.findings}</p>
+              </div>
+            )}
+            {report.recommendations && (
+              <div>
+                <div className="equip_Reports__sectionTitle">
+                  <Edit3 size={16} color="#C9AE70" />
+                  Recommendations
+                </div>
+                <p className="equip_Reports__sectionText">
+                  {report.recommendations}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ─── FOOTER ─── */}
+        <div className="equip_Reports__modalFooter">
+          <button onClick={onClose} className="equip_Reports__closeBtn">
+            Close Viewer
+          </button>
+          <button
+            onClick={() => onDownload(report._id, report.reportNumber)}
+            className="equip_Reports__downloadBtn"
+          >
+            Download Report <Download size={18} />
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

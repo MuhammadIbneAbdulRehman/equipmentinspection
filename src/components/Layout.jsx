@@ -1,97 +1,95 @@
+// src/components/Layout.jsx
+
 import { useState, useEffect } from 'react';
-import Sidebar from './Sidebar';
-import Navbar from './Navbar';
-import { useAuth } from '../context/AuthContext';
 import { Navigate, useLocation } from 'react-router-dom';
-import { Menu, Bell } from 'lucide-react';
+import { LogOut } from 'lucide-react';
+import Sidebar from './Sidebar';
+import Navbar from './MobileTabBar';
+import MobileTabBar from './MobileTabBar';
+import { useAuth } from '../context/AuthContext';
+import './styles/Layout.css';
 
 const Layout = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const location = useLocation();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
-  // Close sidebar on desktop, reset on path change
   useEffect(() => {
-    setIsSidebarOpen(false);
+    setUserMenuOpen(false);
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
-  if (loading) return (
-    <div style={{ height: '100vh', display: 'grid', placeItems: 'center', background: 'var(--bg-color)' }}>
-      <div className="loader" style={{
-        width: 48,
-        height: 48,
-        border: '4px solid var(--card-border)',
-        borderTopColor: 'var(--accent-color)',
-        borderRadius: '50%',
-        animation: 'spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite'
-      }}></div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="equip_Layout__loading">
+        <div className="equip_Layout__spinner" />
+      </div>
+    );
+  }
 
   if (!user) return <Navigate to="/" />;
 
   return (
-    <div className="flex flex-col" style={{ minHeight: '100vh', background: 'var(--bg-color)' }}>
-      {/* Desktop Navigation */}
+    <div className="equip_Layout">
+      {/* Desktop navbar */}
       <Navbar />
 
-      {/* Mobile Top Header */}
-      <header className="mobile-header flex items-center justify-between px-10" style={{
-        height: 'var(--mobile-header-height)',
-        background: '#C1A464 ',
-        borderBottom: '3px solid var(--accent-color)',
-        position: 'sticky',
-        padding: 30,
-        top: 0,
-        zIndex: 800,
-      }}>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsSidebarOpen(true)}
-            style={{ background: 'transparent', color: 'white', padding: 8, marginLeft: -8 }}
-          >
-            <Menu size={24} />
-          </button>
-          <div className="flex items-center gap-2">
-            <div style={{ 
-              width: 64, height: 64, 
-              filter: 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.25))'
-            }}>
-              <img src="/src/assets/logo.png" alt="PASS Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-            </div>
-            <span style={{ fontWeight: 800, fontSize: 18, fontFamily: "'Outfit', sans-serif", color: 'white' }}>PASS</span>
+      {/* Mobile header — no hamburger, no bell */}
+      <header className="equip_Layout__mobileHeader">
+        <div className="equip_Layout__mobileLeft">
+          <div className="equip_Layout__mobileLogoWrap">
+            <img
+              src="/src/assets/logo.png"
+              alt="PASS"
+              className="equip_Layout__mobileLogo"
+            />
           </div>
+          <span className="equip_Layout__mobileBrand">PASS</span>
         </div>
-        <button style={{ background: 'transparent', color: 'rgba(255,255,255,0.7)' }}>
-          <Bell size={20} />
-        </button>
+
+        <div className="equip_Layout__mobileRight">
+          <button
+            className="equip_Layout__mobileUserBtn"
+            onClick={() => setUserMenuOpen(o => !o)}
+            aria-label="User menu"
+          >
+            <div className="equip_Layout__mobileAvatar">
+              {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+            </div>
+          </button>
+
+          {userMenuOpen && (
+            <div className="equip_Layout__mobileDropdown">
+              <div className="equip_Layout__mobileDropdownHeader">
+                <p className="equip_Layout__mobileDropdownName">
+                  {user?.name || 'Inspector'}
+                </p>
+                <p className="equip_Layout__mobileDropdownEmail">
+                  {user?.email || '—'}
+                </p>
+              </div>
+              <button
+                className="equip_Layout__mobileDropdownItem"
+                onClick={logout}
+              >
+                <LogOut size={16} />
+                <span>Sign Out</span>
+              </button>
+            </div>
+          )}
+        </div>
       </header>
 
-      <Sidebar isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
+      {/* Desktop sidebar */}
+      <Sidebar />
 
-      <main className="transition-all" style={{
-        padding: 'var(--content-padding)',
-        paddingTop: 'calc(var(--header-height) + 24px)',
-        width: '100%',
-        maxWidth: '1440px',
-        margin: '20px auto',
-        flex: 1
-      }}>
-        <div className="animate-fade-in">
-          {children}
-        </div>
+      {/* Main content */}
+      <main className="equip_Layout__main">
+        <div className="equip_Layout__content">{children}</div>
       </main>
 
-      <style>{`
-        @media (min-width: 769px) {
-          .mobile-header { display: none !important; }
-        }
-        @media (max-width: 768px) {
-          main { padding-top: 24px !important; }
-        }
-      `}</style>
+      {/* Bottom tab bar — phone only */}
+      <MobileTabBar />
     </div>
   );
 };

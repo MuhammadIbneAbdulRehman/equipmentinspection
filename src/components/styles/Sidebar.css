@@ -1,0 +1,262 @@
+/* ============================================================
+   src/components/styles/Sidebar.css
+   Sidebar visible on desktop (≥768px), hidden on phone (≤767px).
+   Phone uses bottom tab bar instead.
+   ============================================================ */
+
+.equip_Sidebar {
+  width: 268px;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  background: #FDFBF6;
+  border-right: 1px solid #E5DECC;
+  padding: 24px 18px;
+  z-index: 1002;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow-y: auto;
+  box-shadow: 2px 0 12px -6px rgba(186, 154, 89, 0.15);
+}
+
+/* ─── Phone: hide the entire sidebar ─── */
+@media (max-width: 767px) {
+  .equip_Sidebar {
+    display: none !important;
+  }
+}
+
+/* ─── Brand ─── */
+.equip_Sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 8px 26px;
+  border-bottom: 1px solid #E5DECC;
+  margin-bottom: 20px;
+}
+
+.equip_Sidebar__brandLogoWrap {
+  width: 58px;
+  height: 58px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 6px 12px rgba(186, 154, 89, 0.35));
+}
+
+.equip_Sidebar__brandLogo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.equip_Sidebar__brandText {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.equip_Sidebar__brandName {
+  font-family: 'Outfit', 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: #2A2620;
+  margin: 0;
+}
+
+.equip_Sidebar__brandTag {
+  font-size: 10px;
+  font-weight: 700;
+  color: #9C7F41;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+/* ─── Nav ─── */
+.equip_Sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.equip_Sidebar__navLabel {
+  font-size: 10px;
+  font-weight: 800;
+  color: #9C9588;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 4px 12px 8px;
+}
+
+.equip_Sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: #6B6558;
+  font-size: 14px;
+  font-weight: 600;
+  min-height: 44px;
+  position: relative;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.equip_Sidebar__link:hover {
+  background: #F5EEDD;
+  color: #7E6534;
+}
+
+.equip_Sidebar__linkIcon {
+  flex-shrink: 0;
+  opacity: 0.75;
+  transition: opacity 0.15s;
+}
+
+.equip_Sidebar__link:hover .equip_Sidebar__linkIcon {
+  opacity: 1;
+}
+
+.equip_Sidebar__linkText {
+  font-family: 'Outfit', 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Active */
+.equip_Sidebar__link--active {
+  background: linear-gradient(135deg, #F5EEDD, rgba(186, 154, 89, 0.14));
+  color: #7E6534;
+  font-weight: 700;
+}
+
+.equip_Sidebar__link--active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 24px;
+  border-radius: 0 4px 4px 0;
+  background: #BA9A59;
+}
+
+.equip_Sidebar__link--active .equip_Sidebar__linkIcon {
+  opacity: 1;
+  color: #9C7F41;
+}
+
+/* ─── Bottom ─── */
+.equip_Sidebar__bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 18px;
+  border-top: 1px solid #E5DECC;
+  margin-top: 18px;
+}
+
+.equip_Sidebar__userCard {
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #F5EEDD;
+  border: 1px solid #E8DDBE;
+}
+
+.equip_Sidebar__userRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.equip_Sidebar__userAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #BA9A59, #9C7F41);
+  color: #FFFFFF;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 800;
+  flex-shrink: 0;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  box-shadow: 0 4px 10px -2px rgba(186, 154, 89, 0.5);
+}
+
+.equip_Sidebar__userMeta {
+  overflow: hidden;
+  flex: 1;
+  min-width: 0;
+}
+
+.equip_Sidebar__userName {
+  font-size: 13px;
+  font-weight: 700;
+  color: #2A2620;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.equip_Sidebar__userRole {
+  font-size: 11px;
+  color: #9C9588;
+  font-weight: 600;
+  margin-top: 2px;
+  line-height: 1.2;
+}
+
+.equip_Sidebar__licenseBadge {
+  font-size: 10px;
+  color: #7E6534;
+  font-weight: 800;
+  background: #FFFFFF;
+  padding: 5px 10px;
+  border-radius: 8px;
+  display: inline-block;
+  border: 1px solid #E8DDBE;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* Logout */
+.equip_Sidebar__logout {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  color: #dc2626;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-height: 44px;
+  width: 100%;
+  text-align: left;
+}
+
+.equip_Sidebar__logout:hover {
+  background: #fee2e2;
+}
+
+/* ─── Backdrop / close button — not used anymore ─── */
+.equip_Sidebar__backdrop,
+.equip_Sidebar__closeBtn {
+  display: none !important;
+}

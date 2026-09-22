@@ -1,19 +1,23 @@
+// src/pages/Clients.jsx
+
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';        // ← NEW
 import API from '../api/axios';
 import { useToast } from '../context/ToastContext';
-import { 
-  Users, 
-  Plus, 
-  Search, 
-  Edit3, 
-  Trash2, 
+import {
+  Users,
+  Plus,
+  Search,
+  Edit3,
+  Trash2,
   X,
   Mail,
   Phone,
   MapPin,
-  MoreVertical,
-  CheckCircle2
+  CheckCircle2,
+  ClipboardCheck,                                       // ← NEW
 } from 'lucide-react';
+import './styles/Clients.css';
 
 const Clients = () => {
   const [clients, setClients] = useState([]);
@@ -25,10 +29,11 @@ const Clients = () => {
     name: '',
     email: '',
     phone: '',
-    address: ''
+    address: '',
   });
 
   const { addToast } = useToast();
+  const navigate = useNavigate();                       // ← NEW
 
   const fetchClients = async () => {
     try {
@@ -49,10 +54,10 @@ const Clients = () => {
     if (client) {
       setEditingClient(client);
       setFormData({
-        name: client.name,
+        name: client.name || '',
         email: client.email || '',
         phone: client.phone || '',
-        address: client.address || ''
+        address: client.address || '',
       });
     } else {
       setEditingClient(null);
@@ -61,7 +66,7 @@ const Clients = () => {
     setShowModal(true);
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
     try {
       if (editingClient) {
@@ -74,12 +79,19 @@ const Clients = () => {
       setShowModal(false);
       fetchClients();
     } catch (err) {
-      addToast(err.response?.data?.message || 'Failed to save client.', 'error');
+      addToast(
+        err.response?.data?.message || 'Failed to save client.',
+        'error'
+      );
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Delete this client? All related inspection records will remain.')) {
+  const handleDelete = async id => {
+    if (
+      window.confirm(
+        'Delete this client? All related inspection records will remain.'
+      )
+    ) {
       try {
         await API.delete(`/clients/${id}`);
         addToast('Client deleted successfully.', 'success');
@@ -90,92 +102,155 @@ const Clients = () => {
     }
   };
 
-  const filteredClients = clients.filter(c => 
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.email?.toLowerCase().includes(search.toLowerCase())
+  // ─── NEW: Start inspection for this client ───
+  const handleStartInspection = client => {
+    navigate(`/inspections?clientId=${client._id}`);
+  };
+
+  const filteredClients = clients.filter(
+    c =>
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.email?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
-    <div className="flex flex-col gap-10">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+    <div className="equip_Clients">
+      {/* ─── HEADER ─── */}
+      <header className="equip_Clients__header">
         <div>
-          <div className="flex items-center gap-2 mb-2" style={{ color: 'var(--accent-color)' }}>
-            <Users size={18} />
-            <span style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>CRM</span>
+          <div className="equip_Clients__eyebrow">
+            <Users size={16} />
+            <span>CRM</span>
           </div>
-          <h1 style={{ fontSize: 'clamp(24px, 5vw, 36px)', fontWeight: 800 }}>Client Directory</h1>
-          <p style={{ color: 'var(--text-secondary)', fontWeight: 500, marginTop: 4 }}>Manage and track your inspection client database.</p>
+          <h1 className="equip_Clients__title">Client Directory</h1>
+          <p className="equip_Clients__subtitle">
+            Manage and track your inspection client database.
+          </p>
         </div>
-        <button onClick={() => handleOpenModal()} className="btn-primary" style={{ width: '100%', sm: 'auto' }}>
-          <Plus size={20} /> Add New Client
+        <button
+          onClick={() => handleOpenModal()}
+          className="equip_Clients__addBtn"
+        >
+          <Plus size={18} /> Add New Client
         </button>
-      </div>
+      </header>
 
-      <div className="glass-card flex items-center gap-4" style={{ padding: '0 24px', height: 60, boxShadow: 'var(--shadow-sm)' }}>
-        <Search size={20} color="var(--text-muted)" />
-        <input 
-          type="text" 
-          placeholder="Search by company name or primary contact email..." 
-          className="w-full"
-          style={{ background: 'transparent', border: 'none', padding: '12px 0', fontSize: 15, fontWeight: 500 }}
+      {/* ─── SEARCH ─── */}
+      <div className="equip_Clients__search">
+        <Search size={20} className="equip_Clients__searchIcon" />
+        <input
+          type="text"
+          placeholder="Search by company name or primary contact email..."
+          className="equip_Clients__searchInput"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={e => setSearch(e.target.value)}
         />
       </div>
 
-      <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div className="table-container" style={{ border: 'none' }}>
-          <table>
+      {/* ─── TABLE ─── */}
+      <div className="equip_Clients__tableCard">
+        <div className="equip_Clients__tableScroll">
+          <table className="equip_Clients__table">
             <thead>
               <tr>
-                <th>COMPANY / CLIENT NAME</th>
-                <th>CONTACT DETAILS</th>
-                <th>HEADQUARTERS</th>
-                <th>ONBOARDING DATE</th>
-                <th style={{ textAlign: 'right' }}>ACTIONS</th>
+                <th>Company / Client Name</th>
+                <th>Contact Details</th>
+                <th>Headquarters</th>
+                <th>Onboarding Date</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredClients.length > 0 ? filteredClients.map((client) => (
-                <tr key={client._id}>
-                  <td>
-                    <div className="flex items-center gap-4">
-                      <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--accent-soft)', color: 'var(--accent-color)', display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: 16, fontFamily: "'Outfit', sans-serif" }}>
-                        {client.name.charAt(0).toUpperCase()}
+              {filteredClients.length > 0 ? (
+                filteredClients.map(client => (
+                  <tr key={client._id}>
+                    <td>
+                      <div className="equip_Clients__cellName">
+                        <div className="equip_Clients__avatar">
+                          {client.name.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="equip_Clients__name">
+                          {client.name}
+                        </span>
                       </div>
-                      <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-primary)' }}>{client.name}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="flex flex-col gap-1.5">
-                      {client.email && <div className="flex items-center gap-2" style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600 }}><Mail size={14} color="var(--text-muted)" /> {client.email}</div>}
-                      {client.phone && <div className="flex items-center gap-2" style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}><Phone size={14} color="var(--text-muted)" /> {client.phone}</div>}
-                    </div>
-                  </td>
-                  <td style={{ fontSize: 14, color: 'var(--text-secondary)', maxWidth: 220, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 500 }}>
-                    <div className="flex items-center gap-2"><MapPin size={14} color="var(--text-muted)" /> {client.address || 'Global / Not Set'}</div>
-                  </td>
-                  <td style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>
-                    {new Date(client.createdAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div className="flex justify-end gap-3 px-4">
-                      <button onClick={() => handleOpenModal(client)} className="btn-secondary" style={{ padding: 10, borderRadius: 10, background: '#f8fafc' }} title="Edit Profile">
-                        <Edit3 size={18} color="var(--accent-color)" />
-                      </button>
-                      <button onClick={() => handleDelete(client._id)} className="btn-secondary" style={{ padding: 10, borderRadius: 10, background: '#fef2f2' }} title="Remove Record">
-                        <Trash2 size={18} color="var(--danger)" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              )) : (
+                    </td>
+                    <td>
+                      <div className="equip_Clients__cellContact">
+                        {client.email && (
+                          <div className="equip_Clients__contactRow equip_Clients__contactRow--email">
+                            <Mail size={14} /> {client.email}
+                          </div>
+                        )}
+                        {client.phone && (
+                          <div className="equip_Clients__contactRow equip_Clients__contactRow--phone">
+                            <Phone size={14} /> {client.phone}
+                          </div>
+                        )}
+                        {!client.email && !client.phone && (
+                          <span style={{ color: '#9C9588', fontSize: 13 }}>
+                            No contact info
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="equip_Clients__cellAddress">
+                        <MapPin size={14} />
+                        <span className="equip_Clients__cellAddressText">
+                          {client.address || 'Global / Not Set'}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <span className="equip_Clients__cellDate">
+                        {new Date(client.createdAt).toLocaleDateString(
+                          undefined,
+                          { month: 'short', day: 'numeric', year: 'numeric' }
+                        )}
+                      </span>
+                    </td>
+                    <td className="equip_Clients__cellActions">
+                      <div className="equip_Clients__actionGroup">
+                        {/* ─── NEW: Start Inspection ─── */}
+                        <button
+                          onClick={() => handleStartInspection(client)}
+                          className="equip_Clients__iconBtn equip_Clients__iconBtn--primary"
+                          title="Start Inspection"
+                          aria-label="Start Inspection"
+                        >
+                          <ClipboardCheck size={16} />
+                        </button>
+
+                        <button
+                          onClick={() => handleOpenModal(client)}
+                          className="equip_Clients__iconBtn"
+                          title="Edit Profile"
+                          aria-label="Edit"
+                        >
+                          <Edit3 size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(client._id)}
+                          className="equip_Clients__iconBtn equip_Clients__iconBtn--danger"
+                          title="Remove Record"
+                          aria-label="Delete"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
                 <tr>
-                  <td colSpan="5" style={{ textAlign: 'center', padding: 80, color: 'var(--text-muted)' }}>
-                    <div className="flex flex-col items-center gap-4 opacity-50">
-                      <Users size={64} />
-                      <p style={{ fontSize: 16, fontWeight: 600 }}>Your client directory is currently empty.</p>
-                    </div>
+                  <td colSpan="5" className="equip_Clients__empty">
+                    <Users
+                      size={64}
+                      className="equip_Clients__emptyIcon"
+                    />
+                    <p className="equip_Clients__emptyText">
+                      Your client directory is currently empty.
+                    </p>
                   </td>
                 </tr>
               )}
@@ -184,59 +259,98 @@ const Clients = () => {
         </div>
       </div>
 
+      {/* ─── MODAL ─── */}
       {showModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(8px)', display: 'grid', placeItems: 'center', zIndex: 1000, padding: '16px' }} className="animate-fade-in">
-          <div className="glass-card" style={{ width: '100%', maxWidth: 540, position: 'relative', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', maxHeight: '90vh', overflowY: 'auto' }}>
-            <button onClick={() => setShowModal(false)} style={{ position: 'absolute', right: 24, top: 24, background: 'var(--accent-soft)', color: 'var(--accent-color)', padding: 6, borderRadius: '50%' }}>
-              <X size={20} />
+        <div className="equip_Clients__modalBackdrop">
+          <div className="equip_Clients__modal">
+            <button
+              onClick={() => setShowModal(false)}
+              className="equip_Clients__modalClose"
+              aria-label="Close"
+            >
+              <X size={18} />
             </button>
-            <div className="mb-8">
-              <h2 style={{ fontSize: 28, fontWeight: 800 }}>{editingClient ? 'Update Profile' : 'Register Client'}</h2>
-              <p style={{ color: 'var(--text-secondary)', fontWeight: 500, marginTop: 4 }}>{editingClient ? 'Modify existing client information below.' : 'Add a new company to your inspection database.'}</p>
+
+            <div className="equip_Clients__modalHeader">
+              <h2 className="equip_Clients__modalTitle">
+                {editingClient ? 'Update Profile' : 'Register Client'}
+              </h2>
+              <p className="equip_Clients__modalSubtitle">
+                {editingClient
+                  ? 'Modify existing client information below.'
+                  : 'Add a new company to your inspection database.'}
+              </p>
             </div>
-            
-            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-              <div className="flex flex-col gap-2">
-                <label>Company Legal Name</label>
-                <input 
-                  type="text" 
+
+            <form onSubmit={handleSubmit} className="equip_Clients__form">
+              <div className="equip_Clients__field">
+                <label className="equip_Clients__label">
+                  Company Legal Name
+                </label>
+                <input
+                  type="text"
                   placeholder="e.g. Prime Engineering Solutions"
                   value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  onChange={e =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                   required
+                  className="equip_Clients__input"
                 />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex flex-col gap-2">
-                  <label>Email Address</label>
-                  <input 
-                    type="email" 
+
+              <div className="equip_Clients__row">
+                <div className="equip_Clients__field">
+                  <label className="equip_Clients__label">Email Address</label>
+                  <input
+                    type="email"
                     placeholder="contact@client.com"
                     value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    onChange={e =>
+                      setFormData({ ...formData, email: e.target.value })
+                    }
+                    className="equip_Clients__input"
                   />
                 </div>
-                <div className="flex flex-col gap-2">
-                  <label>Contact Phone</label>
-                  <input 
-                    type="text" 
+                <div className="equip_Clients__field">
+                  <label className="equip_Clients__label">Contact Phone</label>
+                  <input
+                    type="text"
                     placeholder="+00 (00) 000-0000"
                     value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    onChange={e =>
+                      setFormData({ ...formData, phone: e.target.value })
+                    }
+                    className="equip_Clients__input"
                   />
                 </div>
               </div>
-              <div className="flex flex-col gap-2">
-                <label>Headquarters Address</label>
-                <textarea 
+
+              <div className="equip_Clients__field">
+                <label className="equip_Clients__label">
+                  Headquarters Address
+                </label>
+                <textarea
                   placeholder="Street address, Suite, City, Country"
                   rows={3}
                   value={formData.address}
-                  onChange={(e) => setFormData({...formData, address: e.target.value})}
-                ></textarea>
+                  onChange={e =>
+                    setFormData({ ...formData, address: e.target.value })
+                  }
+                  className="equip_Clients__textarea"
+                />
               </div>
-              <button type="submit" className="btn-primary w-full mt-4" style={{ height: 56 }}>
-                {editingClient ? <><Edit3 size={18} /> Update Database</> : <><CheckCircle2 size={18} /> Add to Directory</>}
+
+              <button type="submit" className="equip_Clients__submit">
+                {editingClient ? (
+                  <>
+                    <Edit3 size={18} /> Update Database
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={18} /> Add to Directory
+                  </>
+                )}
               </button>
             </form>
           </div>

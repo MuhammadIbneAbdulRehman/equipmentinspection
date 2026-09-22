@@ -1,0 +1,629 @@
+/* ============================================================
+   src/pages/styles/Inspections.css
+   Inspections — warm gold palette, HCI-optimized
+   ============================================================ */
+
+/* ═══════════════════════════════════════════════════════════
+   PAGE ROOT
+   ═══════════════════════════════════════════════════════════ */
+.equip_Inspections {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    padding-bottom: 32px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   HEADER
+   ═══════════════════════════════════════════════════════════ */
+.equip_Inspections__header {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+@media (min-width: 768px) {
+    .equip_Inspections__header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: flex-end;
+    }
+}
+
+.equip_Inspections__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #BA9A59;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 10px;
+}
+
+.equip_Inspections__title {
+    font-family: 'Outfit', 'Inter', sans-serif;
+    font-size: 34px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #2A2620;
+    line-height: 1.1;
+    margin: 0;
+}
+
+@media (max-width: 639px) {
+    .equip_Inspections__title {
+        font-size: 26px;
+    }
+}
+
+.equip_Inspections__subtitle {
+    color: #6B6558;
+    font-size: 15px;
+    font-weight: 400;
+    margin-top: 8px;
+    max-width: 60ch;
+    line-height: 1.5;
+}
+
+/* Gold button */
+.equip_Inspections__addBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 22px;
+    min-height: 46px;
+    border-radius: 12px;
+    border: none;
+    background: linear-gradient(145deg, #C9AE70, #BA9A59);
+    color: #FFFFFF;
+    font-family: 'Outfit', 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow:
+        0 8px 20px -6px rgba(186, 154, 89, 0.55),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+    white-space: nowrap;
+}
+
+.equip_Inspections__addBtn:hover {
+    background: linear-gradient(145deg, #BA9A59, #9C7F41);
+    transform: translateY(-1px);
+    box-shadow:
+        0 12px 26px -8px rgba(156, 127, 65, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SEARCH
+   ═══════════════════════════════════════════════════════════ */
+.equip_Inspections__search {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 20px;
+    height: 60px;
+    background: #FDFBF6;
+    border: 1px solid #E8DDBE;
+    border-radius: 16px;
+    box-shadow:
+        0 1px 2px 0 rgba(126, 101, 52, 0.04),
+        0 6px 16px -8px rgba(126, 101, 52, 0.08);
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.equip_Inspections__search:focus-within {
+    border-color: #BA9A59;
+    box-shadow:
+        0 1px 2px 0 rgba(126, 101, 52, 0.04),
+        0 0 0 3px rgba(186, 154, 89, 0.15);
+}
+
+.equip_Inspections__searchIcon {
+    color: #9C9588;
+    flex-shrink: 0;
+}
+
+.equip_Inspections__searchInput {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 12px 0;
+    font-size: 15px;
+    font-weight: 500;
+    color: #2A2620;
+    outline: none;
+    min-width: 0;
+}
+
+.equip_Inspections__searchInput::placeholder {
+    color: #9C9588;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TABLE CARD
+   ═══════════════════════════════════════════════════════════ */
+.equip_Inspections__tableCard {
+    background: #FDFBF6;
+    border: 1px solid #E8DDBE;
+    border-radius: 22px;
+    box-shadow:
+        0 1px 2px 0 rgba(126, 101, 52, 0.04),
+        0 8px 24px -12px rgba(126, 101, 52, 0.08);
+    overflow: hidden;
+}
+
+.equip_Inspections__tableScroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.equip_Inspections__table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1000px;
+    font-size: 14px;
+}
+
+.equip_Inspections__table thead {
+    background: linear-gradient(180deg, #F1EBDD, #FDFBF6);
+}
+
+.equip_Inspections__table thead th {
+    text-align: left;
+    padding: 16px 24px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #9C7F41;
+    border-bottom: 1px solid #E8DDBE;
+    white-space: nowrap;
+}
+
+.equip_Inspections__table tbody td {
+    padding: 18px 24px;
+    border-bottom: 1px solid #EDE7D6;
+    vertical-align: middle;
+    color: #2A2620;
+}
+
+.equip_Inspections__table tbody tr:hover {
+    background: #F5EEDD;
+}
+
+.equip_Inspections__table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* ─── Client cell ─── */
+.equip_Inspections__cellClient {
+    font-weight: 700;
+    font-size: 15px;
+    color: #2A2620;
+    text-transform: capitalize;
+}
+
+/* ─── Equipment cell ─── */
+.equip_Inspections__cellEquipment {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.equip_Inspections__equipmentName {
+    font-weight: 700;
+    color: #2A2620;
+    font-size: 14px;
+}
+
+.equip_Inspections__equipmentCategory {
+    font-size: 10px;
+    font-weight: 700;
+    color: #9C9588;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+/* ─── Identifiers cell ─── */
+.equip_Inspections__cellIdentifiers {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.equip_Inspections__identifierRow {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #6B6558;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.equip_Inspections__identifierRow svg {
+    color: #9C9588;
+    flex-shrink: 0;
+}
+
+/* ─── Date cell ─── */
+.equip_Inspections__cellDate {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #6B6558;
+    white-space: nowrap;
+}
+
+.equip_Inspections__cellDate svg {
+    color: #9C9588;
+    flex-shrink: 0;
+}
+
+/* ─── Status badge ─── */
+.equip_Inspections__status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.equip_Inspections__status--pending {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.equip_Inspections__status--in-progress {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.equip_Inspections__status--completed {
+    background: #d1fae5;
+    color: #047857;
+}
+
+.equip_Inspections__statusDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+}
+
+/* ─── Actions ─── */
+.equip_Inspections__cellActions {
+    text-align: right;
+}
+
+.equip_Inspections__actionGroup {
+    display: inline-flex;
+    gap: 8px;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.equip_Inspections__actionBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    color: #7E6534;
+    background: #F5EEDD;
+    border: 1px solid #E8DDBE;
+    cursor: pointer;
+    transition: all 0.15s;
+    min-height: 36px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-family: inherit;
+    white-space: nowrap;
+}
+
+.equip_Inspections__actionBtn:hover {
+    background: #BA9A59;
+    color: #FFFFFF;
+    border-color: #BA9A59;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px -4px rgba(186, 154, 89, 0.4);
+}
+
+.equip_Inspections__iconBtn {
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    border-radius: 10px;
+    border: 1px solid #E8DDBE;
+    background: #FDFBF6;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: #dc2626;
+}
+
+.equip_Inspections__iconBtn:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    transform: translateY(-1px);
+}
+
+/* ─── Empty state ─── */
+.equip_Inspections__empty {
+    text-align: center;
+    padding: 80px 24px;
+    color: #9C9588;
+}
+
+.equip_Inspections__emptyIcon {
+    color: #E8DDBE;
+    margin: 0 auto 16px;
+}
+
+.equip_Inspections__emptyText {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MODAL
+   ═══════════════════════════════════════════════════════════ */
+.equip_Inspections__modalBackdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(42, 38, 32, 0.6);
+    backdrop-filter: blur(8px);
+    display: grid;
+    place-items: center;
+    z-index: 1000;
+    padding: 16px;
+    animation: equip_Inspections__fadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes equip_Inspections__fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.equip_Inspections__modal {
+    position: relative;
+    width: 100%;
+    max-width: 640px;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: #FDFBF6;
+    border: 1px solid #E8DDBE;
+    border-radius: 22px;
+    padding: 28px;
+    box-shadow:
+        0 25px 50px -12px rgba(126, 101, 52, 0.35),
+        0 8px 20px -8px rgba(126, 101, 52, 0.2);
+    animation: equip_Inspections__panelIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes equip_Inspections__panelIn {
+    from {
+        opacity: 0;
+        transform: scale(0.96) translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.equip_Inspections__modalClose {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: #F5EEDD;
+    color: #9C7F41;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.equip_Inspections__modalClose:hover {
+    background: #E8DDBE;
+    color: #7E6534;
+    transform: rotate(90deg);
+}
+
+.equip_Inspections__modalHeader {
+    margin-bottom: 24px;
+    padding-right: 40px;
+}
+
+.equip_Inspections__modalTitle {
+    font-family: 'Outfit', 'Inter', sans-serif;
+    font-size: 24px;
+    font-weight: 800;
+    color: #2A2620;
+    margin: 0 0 6px;
+    line-height: 1.2;
+}
+
+.equip_Inspections__modalSubtitle {
+    font-size: 14px;
+    color: #6B6558;
+    font-weight: 400;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* ─── Form ─── */
+.equip_Inspections__form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.equip_Inspections__row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+
+@media (min-width: 640px) {
+    .equip_Inspections__row {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.equip_Inspections__field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.equip_Inspections__label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #6B6558;
+    letter-spacing: 0.02em;
+}
+
+.equip_Inspections__input,
+.equip_Inspections__select {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid #E8DDBE;
+    background: #FDFBF6;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    color: #2A2620;
+    transition: all 0.15s;
+    outline: none;
+    min-height: 46px;
+}
+
+.equip_Inspections__input::placeholder {
+    color: #9C9588;
+    font-weight: 400;
+}
+
+.equip_Inspections__input:focus,
+.equip_Inspections__select:focus {
+    border-color: #BA9A59;
+    background: #FFFFFF;
+    box-shadow: 0 0 0 3px rgba(186, 154, 89, 0.15);
+}
+
+.equip_Inspections__select:disabled {
+    background: #F1EBDD;
+    color: #9C9588;
+    cursor: not-allowed;
+}
+
+/* ─── Submit button ─── */
+.equip_Inspections__submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 14px 22px;
+    min-height: 52px;
+    border-radius: 12px;
+    border: none;
+    background: linear-gradient(145deg, #C9AE70, #BA9A59);
+    color: #FFFFFF;
+    font-family: 'Outfit', 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow:
+        0 8px 20px -6px rgba(186, 154, 89, 0.55),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+    margin-top: 8px;
+}
+
+.equip_Inspections__submit:hover {
+    background: linear-gradient(145deg, #BA9A59, #9C7F41);
+    transform: translateY(-1px);
+    box-shadow:
+        0 12px 26px -8px rgba(156, 127, 65, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.equip_Inspections__submit:active {
+    transform: translateY(0);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 639px) {
+    .equip_Inspections {
+        gap: 24px;
+    }
+
+    .equip_Inspections__table thead th,
+    .equip_Inspections__table tbody td {
+        padding: 12px 16px;
+        font-size: 13px;
+    }
+
+    .equip_Inspections__modal {
+        padding: 22px;
+        border-radius: 18px;
+    }
+
+    .equip_Inspections__modalTitle {
+        font-size: 20px;
+    }
+
+    .equip_Inspections__actionBtn {
+        padding: 6px 12px;
+        font-size: 11px;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ACCESSIBILITY
+   ═══════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+
+    .equip_Inspections__modalBackdrop,
+    .equip_Inspections__modal,
+    .equip_Inspections__addBtn,
+    .equip_Inspections__actionBtn,
+    .equip_Inspections__iconBtn,
+    .equip_Inspections__submit,
+    .equip_Inspections__modalClose {
+        transition: none;
+        animation: none;
+    }
+}
